@@ -4,7 +4,8 @@ import { OrderService } from './order.service';
 import { CartItem } from 'app/restaurant-detail/shopping-cart/cart-item.model';
 import { Order, OrderItem } from './order.model';
 import { Router } from '@angular/router';
-import { FormGroup, FormBuilder, Validators, AbstractControl } from '../../../node_modules/@angular/forms';
+import { FormGroup, FormBuilder, Validators, AbstractControl } from '@angular/forms';
+import 'rxjs/add/operator/do';
 
 @Component({
   selector: 'mt-order',
@@ -12,9 +13,10 @@ import { FormGroup, FormBuilder, Validators, AbstractControl } from '../../../no
 })
 export class OrderComponent implements OnInit {
 
+  orderId: string
   orderForm: FormGroup
 
-  delivery: number = 8;
+  delivery = 8;
 
   emailPattern = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i
   numberPattern = /^[0-9]*$/
@@ -38,7 +40,7 @@ export class OrderComponent implements OnInit {
     return undefined;
   }
 
-  constructor(private orderService: OrderService, 
+  constructor(private orderService: OrderService,
               private router: Router,
               private formBuilder: FormBuilder) {
   }
@@ -77,12 +79,22 @@ export class OrderComponent implements OnInit {
 
   checkOrder(order: Order) {
     order.orderItems = this.cartItems().map((item: CartItem) => new OrderItem(item.quantity, item.menuItem.id));
-    this.orderService.checkOrder(order).subscribe((orderCadastrada: String) => {
-      this.router.navigate(['/order-summary']);
-      console.log(`Compra concluída: ${orderCadastrada}`);
-      this.orderService.clear();
-    });
+
+    this.orderService.checkOrder(order)
+      .do((orderId: string) => {
+        this.orderId = orderId;
+      })
+      .subscribe((orderId: string) => {
+        this.router.navigate(['/order-summary']);
+        this.orderService.clear();
+      });
     console.log(order);
   }
+
+  isOrderCompleted(): boolean {
+    return this.orderId !== undefined;
+  }
+
+
 
 }
